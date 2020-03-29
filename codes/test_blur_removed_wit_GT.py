@@ -14,8 +14,28 @@ import utils.util as util
 import data.util as data_util
 import models.archs.EDVR_arch as EDVR_arch
 
+import argparse
+
 
 def main():
+    
+    # Create object for parsing command-line options
+    parser = argparse.ArgumentParser(description="Test with EDVR, requre path to test dataset folder.")
+    # Add argument which takes path to a bag file as an input
+    parser.add_argument("-i", "--input", type=str, help="Path to test folder")
+    # Parse the command line arguments to an object
+    args = parser.parse_args()
+    # Safety if no parameter have been given
+    if not args.input:
+        print("No input paramater have been given.")
+        print("For help type --help")
+        exit()
+
+    folder_name = args.input.split("/")[-1]
+    if folder_name == '':
+        index = len(args.input.split("/")) - 2
+        folder_name = args.input.split("/")[index]
+
     #################
     # configurations
     #################
@@ -49,9 +69,9 @@ def main():
 
     #### dataset
     if data_mode == 'Vid4':
-        # change folder to blur_removed
-        test_dataset_folder = '../datasets/blur_removed/BIx4'
-        GT_dataset_folder = '../datasets/blur_removed/GT'
+        # debug
+        test_dataset_folder = os.path.join(args.input, 'BIx4')
+        GT_dataset_folder = os.path.join(args.input, 'GT')
     else:
         if stage == 1:
             test_dataset_folder = '../datasets/REDS4/{}'.format(data_mode)
@@ -70,13 +90,13 @@ def main():
         padding = 'replicate'
     save_imgs = True
 
-    save_folder = '../results/{}'.format("blur_removed")
+    save_folder = '../results/{}'.format(folder_name)
     util.mkdirs(save_folder)
     util.setup_logger('base', save_folder, 'test', level=logging.INFO, screen=True, tofile=True)
     logger = logging.getLogger('base')
 
     #### log info
-    logger.info('Data: {} - {}'.format("blur_removed", test_dataset_folder))
+    logger.info('Data: {} - {}'.format(folder_name, test_dataset_folder))
     logger.info('Padding mode: {}'.format(padding))
     logger.info('Model path: {}'.format(model_path))
     logger.info('Save images: {}'.format(save_imgs))
@@ -115,6 +135,7 @@ def main():
         for img_idx, img_path in enumerate(img_path_l):
             img_name = osp.splitext(osp.basename(img_path))[0]
             select_idx = data_util.index_generation(img_idx, max_idx, N_in, padding=padding)
+            # print(select_idx)
             imgs_in = imgs_LQ.index_select(0, torch.LongTensor(select_idx)).unsqueeze(0).to(device)
 
             if flip_test:
@@ -167,7 +188,7 @@ def main():
                     'Border PSNR: {:.6f} dB.'.format(subfolder_name, psnr, psnr_center,
                                                      psnr_border))
     logger.info('################ Final Results ################')
-    logger.info('Data: {} - {}'.format("blur_removed", test_dataset_folder))
+    logger.info('Data: {} - {}'.format(folder_name, test_dataset_folder))
     logger.info('Padding mode: {}'.format(padding))
     logger.info('Model path: {}'.format(model_path))
     logger.info('Save images: {}'.format(save_imgs))
