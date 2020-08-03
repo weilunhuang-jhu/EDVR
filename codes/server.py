@@ -93,8 +93,16 @@ def main():
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     socket.bind("tcp://*:5555")
+    print("==============================")
     print("Super Res Server is Listening:")
+    flag = 'c' # c stands for continue
     while True:
+        flag = socket.recv_string()
+        if flag != 'c':
+            socket.send_string("done")
+            break
+        else:
+            socket.send_string("ok")
         images = recv_array(socket)
         img_out = eval(images, N_in, model, device)
         send_array(socket, img_out)
