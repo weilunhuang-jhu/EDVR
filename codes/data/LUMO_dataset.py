@@ -1,5 +1,5 @@
 '''
-REDS dataset
+LUMO dataset
 support reading images from lmdb, image folder and memcached
 '''
 import os.path as osp
@@ -19,10 +19,13 @@ except ImportError:
 
 logger = logging.getLogger('base')
 
+FN_UPPER_LIMIT = 9
+FN_LOWER_LIMIT = 0
 
-class REDSDataset(data.Dataset):
+
+class LUMODataset(data.Dataset):
     '''
-    Reading the training REDS dataset
+    Reading the training LUMO dataset
     key example: 000_00000000
     GT: Ground-Truth;
     LQ: Low-Quality, e.g., low-resolution/blurry/noisy/compressed frames
@@ -30,7 +33,7 @@ class REDSDataset(data.Dataset):
     '''
 
     def __init__(self, opt):
-        super(REDSDataset, self).__init__()
+        super(LUMODataset, self).__init__()
         self.opt = opt
         # temporal augmentation
         self.interval_list = opt['interval_list']
@@ -101,6 +104,10 @@ class REDSDataset(data.Dataset):
         return img
 
     def __getitem__(self, index):
+        # # debug
+        # print("index")
+        # print(index)
+
         if self.data_type == 'mc':
             self._ensure_memcached()
         elif self.data_type == 'lmdb' and (self.GT_env is None or self.LQ_env is None):
@@ -110,11 +117,7 @@ class REDSDataset(data.Dataset):
         GT_size = self.opt['GT_size']
         key = self.paths_GT[index]
         name_a, name_b = key.split('_')
-        # debug
-        print("name a")
-        print(name_a)
-        print("name b")
-        print(name_b)
+
         center_frame_idx = int(name_b)
 
         #### determine the neighbor frames
@@ -124,7 +127,7 @@ class REDSDataset(data.Dataset):
             N_frames = self.opt['N_frames']
             if self.random_reverse and random.random() < 0.5:
                 direction = random.choice([0, 1])
-            if center_frame_idx + interval * (N_frames - 1) > 99:
+            if center_frame_idx + interval * (N_frames - 1) > FN_UPPER_LIMIT:
                 direction = 0
             elif center_frame_idx - interval * (N_frames - 1) < 0:
                 direction = 1
@@ -139,8 +142,8 @@ class REDSDataset(data.Dataset):
         else:
             # ensure not exceeding the borders
             while (center_frame_idx + self.half_N_frames * interval >
-                   99) or (center_frame_idx - self.half_N_frames * interval < 0):
-                center_frame_idx = random.randint(0, 99)
+                   FN_UPPER_LIMIT) or (center_frame_idx - self.half_N_frames * interval < 0):
+                center_frame_idx = random.randint(0, FN_UPPER_LIMIT)
             # get the neighbor list
             neighbor_list = list(
                 range(center_frame_idx - self.half_N_frames * interval,
@@ -171,8 +174,8 @@ class REDSDataset(data.Dataset):
         img_LQ_l = []
         for v in neighbor_list:
             img_LQ_path = osp.join(self.LQ_root, name_a, '{:08d}.png'.format(v))
-            # debug
-            print(img_LQ_path)
+            # # debug
+            # print(img_LQ_path)
 
             if self.data_type == 'mc':
                 if self.LR_input:
@@ -181,9 +184,8 @@ class REDSDataset(data.Dataset):
                     img_LQ = self._read_img_mc_BGR(self.LQ_root, name_a, '{:08d}'.format(v))
                 img_LQ = img_LQ.astype(np.float32) / 255.
             elif self.data_type == 'lmdb':
-                # debug
-                print('{}_{:08d}'.format(name_a, v))
-
+                # # debug
+                # print('{}_{:08d}'.format(name_a, v))
                 img_LQ = util.read_img(self.LQ_env, '{}_{:08d}'.format(name_a, v), LQ_size_tuple)
             else:
                 img_LQ = util.read_img(None, img_LQ_path)

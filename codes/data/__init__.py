@@ -16,7 +16,7 @@ def create_dataloader(dataset, dataset_opt, opt=None, sampler=None):
         else:
             num_workers = dataset_opt['n_workers'] * len(opt['gpu_ids'])
             batch_size = dataset_opt['batch_size']
-            shuffle = True
+            shuffle = dataset_opt['use_shuffle'] # True
         return torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
                                            num_workers=num_workers, sampler=sampler, drop_last=True,
                                            pin_memory=False)
@@ -35,6 +35,8 @@ def create_dataset(dataset_opt):
     # datasets for video restoration
     elif mode == 'REDS':
         from data.REDS_dataset import REDSDataset as D
+    elif mode == 'LUMO':
+        from data.LUMO_dataset import LUMODataset as D
     elif mode == 'Vimeo90K':
         from data.Vimeo90K_dataset import Vimeo90KDataset as D
     elif mode == 'video_test':

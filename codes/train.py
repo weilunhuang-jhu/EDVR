@@ -19,7 +19,8 @@ def init_dist(backend='nccl', **kwargs):
     """initialization for distributed training"""
     if mp.get_start_method(allow_none=True) != 'spawn':
         mp.set_start_method('spawn')
-    rank = int(os.environ['RANK'])
+    # rank = int(os.environ['RANK'])
+    rank = 0
     num_gpus = torch.cuda.device_count()
     torch.cuda.set_device(rank % num_gpus)
     dist.init_process_group(backend=backend, **kwargs)
@@ -155,7 +156,7 @@ def main():
 
             #### training
             model.feed_data(train_data)
-            model.optimize_parameters(current_step)
+            model.optimize_parameters(current_step) # debug: crash directly when using batch size 32
 
             #### log
             if current_step % opt['logger']['print_freq'] == 0:
@@ -298,6 +299,9 @@ def main():
                     logger.info('Saving models and training states.')
                     model.save(current_step)
                     model.save_training_state(epoch, current_step)
+        # debug
+        print("END OF ONE EPOCH")
+        break
 
     if rank <= 0:
         logger.info('Saving the final model.')
