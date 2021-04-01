@@ -1,5 +1,5 @@
 #### general settings
-name: 002_EDVR_REDS
+name: 000_EDVR_LUMO_5f_REDS_pretrained
 use_tb_logger: true
 model: video_base
 distortion: sr
@@ -14,8 +14,8 @@ datasets:
     interval_list: [1]
     random_reverse: false
     border_mode: false
-    dataroot_GT: ../datasets/LUMO/train_sharp_wval.lmdb
-    dataroot_LQ: ../datasets/LUMO/train_sharp_bicubic_wval.lmdb
+    dataroot_GT: ../datasets/LUMO/train_gt_wval.lmdb
+    dataroot_LQ: ../datasets/LUMO/train_d4_wval.lmdb
     cache_keys: meta_info.pkl
 
     N_frames: 5
@@ -28,10 +28,10 @@ datasets:
     use_rot: true
     color: RGB
   val:
-    name: REDS4
+    name: LUMO
     mode: video_test
-    dataroot_GT: ../datasets/LUMO/train_sharp_temp
-    dataroot_LQ: ../datasets/LUMO/train_sharp_bicubic_temp
+    dataroot_GT: ../datasets/LUMO/val_gt
+    dataroot_LQ: ../datasets/LUMO/val_d4
     cache_data: True
     N_frames: 5
     padding: new_info
@@ -52,7 +52,7 @@ network_G:
 path:
   pretrain_model_G: ../experiments/pretrained_models/EDVR_L_x4_SR_REDS.pth # EDVR_REDS_SR_M_woTSA.pth
   strict_load: false
-  resume_state: true
+  resume_state: ~
 
 #### training settings: learning rate scheme, loss
 train:
@@ -60,8 +60,8 @@ train:
   lr_scheme: CosineAnnealingLR_Restart
   beta1: 0.9
   beta2: 0.99
-  niter: 600000
-  ft_tsa_only: 50000
+  niter: 100000 #x6
+  ft_tsa_only: 5000 #x10
   warmup_iter: -1  # -1: no warm up
   T_period: [50000, 100000, 150000, 150000, 150000]
   restarts: [50000, 150000, 300000, 450000]

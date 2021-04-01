@@ -19,7 +19,7 @@ except ImportError:
 
 logger = logging.getLogger('base')
 
-FN_UPPER_LIMIT = 9
+FN_UPPER_LIMIT = 8 
 FN_LOWER_LIMIT = 0
 
 
@@ -56,10 +56,6 @@ class LUMODataset(data.Dataset):
             raise ValueError(
                 'Need to create cache keys (meta_info.pkl) by running [create_lmdb.py]')
 
-        # remove the REDS4 for testing
-        self.paths_GT = [
-            v for v in self.paths_GT if v.split('_')[0] not in ['000', '011', '015', '020']
-        ]
         assert self.paths_GT, 'Error: GT path is empty.'
 
         if self.data_type == 'lmdb':
