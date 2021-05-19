@@ -19,9 +19,11 @@ except ImportError:
 
 logger = logging.getLogger('base')
 
-FN_UPPER_LIMIT = 8 
+FN_UPPER_LIMIT = 4 # inclusive 
 FN_LOWER_LIMIT = 0
 
+H_GT = 704
+W_GT = 480
 
 class LUMODataset(data.Dataset):
     '''
@@ -136,10 +138,8 @@ class LUMODataset(data.Dataset):
                     range(center_frame_idx, center_frame_idx - interval * N_frames, -interval))
             name_b = '{:08d}'.format(neighbor_list[0])
         else:
-            # ensure not exceeding the borders
-            while (center_frame_idx + self.half_N_frames * interval >
-                   FN_UPPER_LIMIT) or (center_frame_idx - self.half_N_frames * interval < 0):
-                center_frame_idx = random.randint(0, FN_UPPER_LIMIT)
+            # hard-code center frame id
+            center_frame_idx = 2 # 
             # get the neighbor list
             neighbor_list = list(
                 range(center_frame_idx - self.half_N_frames * interval,
@@ -147,6 +147,19 @@ class LUMODataset(data.Dataset):
             if self.random_reverse and random.random() < 0.5:
                 neighbor_list.reverse()
             name_b = '{:08d}'.format(neighbor_list[self.half_N_frames])
+
+            # # previous code, used if we have more than N frames in the dataset
+            # # ensure not exceeding the borders
+            # while (center_frame_idx + self.half_N_frames * interval >
+            #        FN_UPPER_LIMIT) or (center_frame_idx - self.half_N_frames * interval < 0):
+            #     center_frame_idx = random.randint(0, FN_UPPER_LIMIT)
+            # # get the neighbor list
+            # neighbor_list = list(
+            #     range(center_frame_idx - self.half_N_frames * interval,
+            #           center_frame_idx + self.half_N_frames * interval + 1, interval))
+            # if self.random_reverse and random.random() < 0.5:
+            #     neighbor_list.reverse()
+            # name_b = '{:08d}'.format(neighbor_list[self.half_N_frames])
 
         assert len(
             neighbor_list) == self.opt['N_frames'], 'Wrong length of neighbor list: {}'.format(
@@ -159,14 +172,16 @@ class LUMODataset(data.Dataset):
         elif self.data_type == 'lmdb':
             # debug
             # img_GT = util.read_img(self.GT_env, key, (3, 720, 1280))
-            img_GT = util.read_img(self.GT_env, key, (3, 352, 240))
+            # img_GT = util.read_img(self.GT_env, key, (3, 352, 240))
+            img_GT = util.read_img(self.GT_env, key, (3, H_GT, W_GT))
         else:
             img_GT = util.read_img(None, osp.join(self.GT_root, name_a, name_b + '.png'))
 
         #### get LQ images
         # debug
         # LQ_size_tuple = (3, 180, 320) if self.LR_input else (3, 720, 1280)
-        LQ_size_tuple = (3, 88, 60) if self.LR_input else (3, 352, 240)
+        # LQ_size_tuple = (3, 88, 60) if self.LR_input else (3, 352, 240)
+        LQ_size_tuple = (3, H_GT//4, W_GT//4) if self.LR_input else (3, H_GT, W_GT)
         img_LQ_l = []
         for v in neighbor_list:
             img_LQ_path = osp.join(self.LQ_root, name_a, '{:08d}.png'.format(v))

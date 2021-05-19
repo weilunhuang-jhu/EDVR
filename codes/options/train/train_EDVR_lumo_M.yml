@@ -22,8 +22,8 @@ datasets:
     use_shuffle: true 
     n_workers: 4 # per GPU
     batch_size: 16
-    GT_size: 240
-    LQ_size: 60
+    GT_size: 480 # 240
+    LQ_size: 120 # 60
     use_flip: true
     use_rot: true
     color: RGB
@@ -51,8 +51,8 @@ network_G:
 #### path
 path:
   pretrain_model_G: ../experiments/pretrained_models/EDVR_M_x4_SR_REDS.pth
-  strict_load: True
-  resume_state: ../experiments/000_EDVR_LUMO_M_5f_REDS_pretrained/training_state/160000.state
+  strict_load: False
+  resume_state: ~ #../experiments/000_EDVR_LUMO_M_5f_REDS_pretrained/training_state/160000.state
 
 #### training settings: learning rate scheme, loss
 train:
