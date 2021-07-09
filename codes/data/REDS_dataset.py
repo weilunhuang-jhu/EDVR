@@ -110,11 +110,6 @@ class REDSDataset(data.Dataset):
         GT_size = self.opt['GT_size']
         key = self.paths_GT[index]
         name_a, name_b = key.split('_')
-        # debug
-        print("name a")
-        print(name_a)
-        print("name b")
-        print(name_b)
         center_frame_idx = int(name_b)
 
         #### determine the neighbor frames
@@ -158,21 +153,19 @@ class REDSDataset(data.Dataset):
             img_GT = self._read_img_mc_BGR(self.GT_root, name_a, name_b)
             img_GT = img_GT.astype(np.float32) / 255.
         elif self.data_type == 'lmdb':
+            img_GT = util.read_img(self.GT_env, key, (3, 720, 1280))
             # debug
-            # img_GT = util.read_img(self.GT_env, key, (3, 720, 1280))
-            img_GT = util.read_img(self.GT_env, key, (3, 352, 240))
+            # img_GT = util.read_img(self.GT_env, key, (3, 352, 240))
         else:
             img_GT = util.read_img(None, osp.join(self.GT_root, name_a, name_b + '.png'))
 
         #### get LQ images
+        LQ_size_tuple = (3, 360, 640) if self.LR_input else (3, 720, 1280)
         # debug
-        # LQ_size_tuple = (3, 180, 320) if self.LR_input else (3, 720, 1280)
-        LQ_size_tuple = (3, 88, 60) if self.LR_input else (3, 352, 240)
+        # LQ_size_tuple = (3, 88, 60) if self.LR_input else (3, 352, 240)
         img_LQ_l = []
         for v in neighbor_list:
             img_LQ_path = osp.join(self.LQ_root, name_a, '{:08d}.png'.format(v))
-            # debug
-            print(img_LQ_path)
 
             if self.data_type == 'mc':
                 if self.LR_input:
@@ -181,9 +174,6 @@ class REDSDataset(data.Dataset):
                     img_LQ = self._read_img_mc_BGR(self.LQ_root, name_a, '{:08d}'.format(v))
                 img_LQ = img_LQ.astype(np.float32) / 255.
             elif self.data_type == 'lmdb':
-                # debug
-                print('{}_{:08d}'.format(name_a, v))
-
                 img_LQ = util.read_img(self.LQ_env, '{}_{:08d}'.format(name_a, v), LQ_size_tuple)
             else:
                 img_LQ = util.read_img(None, img_LQ_path)
