@@ -301,12 +301,13 @@ class EDVR(nn.Module):
 
         out = self.recon_trunk(fea)
         out = self.lrelu(self.pixel_shuffle(self.upconv1(out)))
-        out = self.lrelu(self.pixel_shuffle(self.upconv2(out)))
+        # out = self.lrelu(self.pixel_shuffle(self.upconv2(out)))
         out = self.lrelu(self.HRconv(out))
         out = self.conv_last(out)
         if self.HR_in:
             base = x_center
         else:
-            base = F.interpolate(x_center, scale_factor=4, mode='bilinear', align_corners=False)
+            # base = F.interpolate(x_center, scale_factor=4, mode='bilinear', align_corners=False)
+            base = F.interpolate(x_center, scale_factor=2, mode='bilinear', align_corners=False)
         out += base
         return out

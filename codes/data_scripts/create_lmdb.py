@@ -1,10 +1,12 @@
 """Create lmdb files for [General images (291 images/DIV2K) | Vimeo90K | REDS] training datasets"""
 
 import sys
+import os
 import os.path as osp
 import glob
 import pickle
 from multiprocessing import Pool
+import signal
 import numpy as np
 import lmdb
 import cv2
@@ -13,10 +15,14 @@ sys.path.append(osp.dirname(osp.dirname(osp.abspath(__file__))))
 import data.util as data_util  # noqa: E402
 import utils.util as util  # noqa: E402
 
+N_THREAD = int(os.environ.get("SLURM_CPUS_PER_TASK", "2"))
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 def main():
     dataset = 'REDS'  # vimeo90K | REDS | general (e.g., DIV2K, 291) | DIV2K_demo |test
-    mode = 'train_sharp'  # used for vimeo90k and REDS datasets
+    mode = 'train_sharp_bicubic'  # used for vimeo90k and REDS datasets
     # vimeo90k: GT | LR | flow
     # REDS: train_sharp, train_sharp_bicubic, train_blur_bicubic, train_blur, train_blur_comp
     #       train_sharp_flowx4
@@ -286,17 +292,18 @@ def REDS(mode):
         Flow map is quantized by mmcv and saved in png format
     """
     #### configurations
-    read_all_imgs = False  # whether real all images to memory with multiprocessing
+    read_all_imgs = True  # whether real all images to memory with multiprocessing
     # Set False for use limited memory
     BATCH = 5000  # After BATCH images, lmdb commits, if read_all_imgs = False
     if mode == 'train_sharp':
-        img_folder = '../../datasets/REDS/train_sharp'
-        lmdb_save_path = '../../datasets/REDS/train_sharp_wval.lmdb'
+        img_folder = '/data/huangw9/EDVR/datasets/REDS/train_sharp'
+        lmdb_save_path = '/data/huangw9/EDVR/datasets/REDS/train_sharp_wval.lmdb'
         H_dst, W_dst = 720, 1280
     elif mode == 'train_sharp_bicubic':
-        img_folder = '../../datasets/REDS/train_sharp_bicubic'
-        lmdb_save_path = '../../datasets/REDS/train_sharp_bicubic_wval.lmdb'
-        H_dst, W_dst = 180, 320
+        img_folder = '/data/huangw9/EDVR/datasets/REDS/train_sharp_bicubic'
+        lmdb_save_path = '/data/huangw9/EDVR/datasets/REDS/train_sharp_bicubic_wval.lmdb'
+        #H_dst, W_dst = 180, 320
+        H_dst, W_dst = 360, 640
     elif mode == 'train_blur_bicubic':
         img_folder = '../../datasets/REDS/train_blur_bicubic'
         lmdb_save_path = '../../datasets/REDS/train_blur_bicubic_wval.lmdb'
@@ -313,7 +320,7 @@ def REDS(mode):
         img_folder = '../../datasets/REDS/train_sharp_flowx4'
         lmdb_save_path = '../../datasets/REDS/train_sharp_flowx4.lmdb'
         H_dst, W_dst = 360, 320
-    n_thread = 40
+    n_thread = N_THREAD
     ########################################################
     if not lmdb_save_path.endswith('.lmdb'):
         raise ValueError("lmdb_save_path must end with \'lmdb\'.")
@@ -343,12 +350,19 @@ def REDS(mode):
             dataset[key] = arg[1]
             pbar.update('Reading {}'.format(key))
 
-        pool = Pool(n_thread)
-        for path, key in zip(all_img_list, keys):
-            pool.apply_async(read_image_worker, args=(path, key), callback=mycallback)
-        pool.close()
-        pool.join()
-        print('Finish reading {} images.\nWrite lmdb...'.format(len(all_img_list)))
+        pool = Pool(n_thread, init_worker)
+        try:
+            for path, key in zip(all_img_list, keys):
+                pool.apply_async(read_image_worker, args=(path, key), callback=mycallback)
+        except (KeyboardInterrupt, SystemExit):
+            p.terminate()
+            p.join()
+            print("Unfinished, interrupted!!!!!!!!!")
+            sys.exit(1)
+        else:
+            pool.close()
+            pool.join()
+            print('Finish reading {} images.\nWrite lmdb...'.format(len(all_img_list)))
 
     #### create lmdb environment
     data_size_per_img = cv2.imread(all_img_list[0], cv2.IMREAD_UNCHANGED).nbytes
