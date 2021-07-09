@@ -20,10 +20,14 @@ import models.archs.EDVR_arch as EDVR_arch
 
 
 def eval(images, select_idx, model, device):
+    # debug
+    print("++++++++++++++++++++")
     images = images.astype(np.float32) / 255.
     images = torch.from_numpy(np.ascontiguousarray(np.transpose(images, (0, 3, 1, 2)))).float()
+    print(torch.cuda.memory_allocated(0)/(1024*1024*1024))
     imgs_in = images.index_select(0, torch.LongTensor(select_idx)).unsqueeze(0).to(device)
     output = util.single_forward(model, imgs_in)
+    print(torch.cuda.memory_allocated(0)/(1024*1024*1024))
     output = util.tensor2img(output.squeeze(0))
     output = np.ascontiguousarray(output)
     return output
@@ -50,12 +54,15 @@ def main():
     model.load_state_dict(torch.load(model_path), strict=False)
     model.eval()
     model = model.to(device)
+    print("MODEL TO DEVICE~~~~~~~~~~~~`")
+    print(torch.cuda.memory_allocated(0)/(1024*1024*1024))
 
     #### evaluation
     home_dir = "/home/weilunhuang/lumo_dermatoscope_app/temp_data"
     lesion_folders = os.listdir(home_dir)
     lesion_folders.sort()
-    crop_sizes = [(200, 150), (160, 120), (120, 120)] # radius of crop # (400, 300) is too large
+    # crop_sizes = [(200, 150), (160, 120), (120, 120)] # radius of crop # (400, 300) is too large
+    crop_sizes = [(160, 120)] # radius of crop # (400, 300) is too large
 
     for lesion_folder in lesion_folders:
 
@@ -94,6 +101,9 @@ def main():
                     dim = (width, height)
                     img_out_d2 = cv2.resize(img_out, dim, interpolation=cv2.INTER_LANCZOS4) # INTER_AREA, INTER_CUBIC, INTER_LANCZOS4
                     cv2.imwrite(osp.join(save_folder, '{}.png'.format(str(img_idx).zfill(3)+ "_d2")), img_out_d2)
+        break
+    print("MAX!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print(torch.cuda.max_memory_allocated(0)/(1024*1024*1024))
 
 if __name__ == '__main__':
     main()
